@@ -71,6 +71,7 @@ class Bird(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
+        
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -263,6 +264,7 @@ def main():
 
     tmr = 0
     clock = pg.time.Clock()
+    
     while True:
         key_lst = pg.key.get_pressed()
         for event in pg.event.get():
@@ -270,7 +272,12 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_LSHIFT:  # 追加機能１：高速化
+                bird.speed = 20  # 高速化時speed：20
+            elif event.type == pg.KEYUP and event.key != pg.K_LSHIFT:
+                bird.speed = 10
         screen.blit(bg_img, [0, 0])
+
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
             emys.add(Enemy())
@@ -295,6 +302,7 @@ def main():
             pg.display.update()
             time.sleep(2)
             return
+        
 
         bird.update(key_lst, screen)
         beams.update()
