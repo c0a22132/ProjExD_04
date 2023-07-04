@@ -238,15 +238,19 @@ class Shield(pg.sprite.Sprite):
         引数2 life：防御シールドの発動時間
         """
         super().__init__()
+        self.vx, self.vy = bird.get_direction()
         self.width, self.height = bird.get_direction()
+        angle = math.degrees(math.atan2(-self.vy, self.vx))
         self.image = pg.transform.rotozoom(
-            pg.Surface((20, bird.rect.height * 2)), 0, 1.0
+            pg.Surface((20, bird.rect.height * 2)), angle, 1.0
         )
+        self.vx = math.cos(math.radians(angle))
+        self.vy = -math.sin(math.radians(angle))
         pg.draw.rect(self.image, (0, 0, 0), pg.Rect(0, 0, 20, bird.rect.height * 2))
         self.rect = self.image.get_rect()
 
-        self.rect.centerx: int = bird.rect.centerx + bird.rect.width * self.width
-        self.rect.centery: int = bird.rect.centery + bird.rect.height * self.height
+        self.rect.centery = bird.rect.centery+bird.rect.height*self.vy
+        self.rect.centerx = bird.rect.centerx+bird.rect.width*self.vx
         self.life = life
 
         
