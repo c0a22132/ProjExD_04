@@ -6,8 +6,8 @@ import time
 import pygame as pg
 
 
-WIDTH = 1200  # ゲームウィンドウの幅
-HEIGHT = 600  # ゲームウィンドウの高さ
+WIDTH = 1600  # ゲームウィンドウの幅
+HEIGHT = 900  # ゲームウィンドウの高さ
 
 
 def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
@@ -337,6 +337,8 @@ def main():
             time.sleep(2)
             return
 
+        gravity.update()
+        gravity.draw(screen)
         bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
@@ -347,8 +349,6 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
-        gravity.update()
-        gravity.draw(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
