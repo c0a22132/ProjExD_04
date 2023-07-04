@@ -71,6 +71,8 @@ class Bird(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = xy
         self.speed = 10
+        self.state = "normal"
+        self.hyper_life = -1
 
     def change_img(self, num: int, screen: pg.Surface):
         """
@@ -80,6 +82,15 @@ class Bird(pg.sprite.Sprite):
         """
         self.image = pg.transform.rotozoom(pg.image.load(f"ex04/fig/{num}.png"), 0, 2.0)
         screen.blit(self.image, self.rect)
+
+    def change_state(self, state: str, hyper_life: int):
+        """
+        hyperモードとnormalモードを切り替える
+        引数1　state：こうかとんのモード(hyperまたはnormal)
+        引数2　hyper_life：
+        """
+        self.state = state
+        self.hyper_life = hyper_life
 
     def update(self, key_lst: list[bool], screen: pg.Surface):
         """
@@ -100,6 +111,11 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
+        if self.state == "hyper":
+            self.image = pg.transform.laplacian(self.image)
+        self.hyper_life -= 1
+        if self.hyper_life < 0:
+            self.change_state("normal", -1)
         screen.blit(self.image, self.rect)
     
     def get_direction(self) -> tuple[int, int]:
@@ -372,11 +388,17 @@ def main():
                 beams.add(beam_lst)  #リストをBeamに追加
             elif event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+                
+            if event.type == pg.KEYDOWN and event.key == pg.K_RSHIFT:
+                if score.score >= 100:
+                    score.score_up(-100)
+                    bird.change_state("hyper", 500)
 
             if event.type == pg.KEYDOWN and event.key == pg.K_TAB and score.score >= 50:
                 # TABキー押下でスコア50を消費して重力球の発動
                 gravity.add(Gravity(bird, 200, 400))
                 score.score_up(-50)
+
         if event.type == pg.KEYDOWN and event.key == pg.K_CAPSLOCK:
                 if score.score >= 50 and len(shields) == 0:  # スコアが50以上かつシールドがないとき
                     shields.add(Shield(bird, 400))  # CAPSLOCKキーが押されたら防御シールドを生成
@@ -399,6 +421,17 @@ def main():
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.score_up(1)  # 1点アップ
+
+        for bomb in pg.sprite.spritecollide(bird, bombs, True):
+            if bird.state == "hyper":
+                exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+                score.score_up(1)  # 1点アップ
+            if bird.state == "normal":
+                bird.change_img(8, screen) # こうかとん悲しみエフェクト
+                score.update(screen)
+                pg.display.update()
+                time.sleep(2)
+                return
 
         for bomb in pg.sprite.groupcollide(bombs, gravity, True, False):
             # 重力球と爆弾が衝突したら
