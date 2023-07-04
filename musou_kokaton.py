@@ -6,8 +6,8 @@ import time
 import pygame as pg
 
 
-WIDTH = 1600  # ゲームウィンドウの幅
-HEIGHT = 900  # ゲームウィンドウの高さ
+WIDTH = 1200  # ゲームウィンドウの幅
+HEIGHT = 600  # ゲームウィンドウの高さ
 
 
 def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
@@ -227,6 +227,37 @@ class Enemy(pg.sprite.Sprite):
         self.rect.centery += self.vy
 
 
+class Gravity(pg.sprite.Sprite):
+    """
+    重力球に関するクラス
+    """
+    def __init__(self, bird: Bird, size: int, life: int):
+        """
+        重力球を生成する
+        引数1 bird：重力球を放つこうかとん
+        引数2 size：重力球の大きさ
+        引数3 life：発動時間
+        """
+        super().__init__()
+
+        self.image = pg.Surface((size, size))
+        pg.draw.circle(self.image, (1, 1, 1), (size/2, size/2), size/2)
+        self.image.set_colorkey((0, 0, 0))
+        self.image.set_alpha(200) # 半透過
+        self.rect = self.image.get_rect()
+        self.rect.centerx = bird.rect.centerx
+        self.rect.centery = bird.rect.centery
+        self.life = life
+
+    def update(self):
+        """
+        発動時間lifeを減らし、0未満になったら重力球を削除する
+        """
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+
+
 class Score:
     """
     打ち落とした爆弾，敵機の数をスコアとして表示するクラス
@@ -247,7 +278,7 @@ class Score:
     def update(self, screen: pg.Surface):
         self.image = self.font.render(f"Score: {self.score}", 0, self.color)
         screen.blit(self.image, self.rect)
-
+    
 
 def main():
     pg.display.set_caption("真！こうかとん無双")
@@ -260,6 +291,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    gravity = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -270,6 +302,10 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_TAB and score.score >= 50:
+                # TABキー押下でスコア50を消費して重力球の発動
+                gravity.add(Gravity(bird, 200, 400))
+                score.score_up(-50)
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -289,6 +325,11 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.score_up(1)  # 1点アップ
 
+        for bomb in pg.sprite.groupcollide(bombs, gravity, True, False):
+            # 重力球と爆弾が衝突したら
+            exps.add(Explosion(bomb, 50)) # 爆発エフェクト
+            score.score_up(1) # 1点アップ
+
         if len(pg.sprite.spritecollide(bird, bombs, True)) != 0:
             bird.change_img(8, screen) # こうかとん悲しみエフェクト
             score.update(screen)
@@ -306,6 +347,8 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
+        gravity.update()
+        gravity.draw(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
