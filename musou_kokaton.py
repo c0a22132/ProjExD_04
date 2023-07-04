@@ -227,6 +227,47 @@ class Enemy(pg.sprite.Sprite):
         self.rect.centery += self.vy
 
 
+class Shield(pg.sprite.Sprite):
+    """
+    防御シールドに関するクラス
+    """
+    def __init__(self, bird: Bird, life: int):
+        """
+        防御シールドを生成する
+        引数1 bird：防御シールドを発動するこうかとん
+        引数2 life：防御シールドの発動時間
+        """
+        super().__init__()
+        self.width, self.height = bird.get_direction()
+        self.image = pg.transform.rotozoom(
+            pg.Surface((20, bird.rect.height * 2)), 0, 1.0
+        )
+        pg.draw.rect(self.image, (0, 0, 0), pg.Rect(0, 0, 20, bird.rect.height * 2))
+        self.rect = self.image.get_rect()
+
+        self.rect.centerx: int = bird.rect.centerx + bird.rect.width * self.width
+        self.rect.centery: int = bird.rect.centery + bird.rect.height * self.height
+        self.life = life
+
+        
+    def update(self):
+        """
+        防御シールドの残りライフ_lifeに応じてシールドの色を変更する
+        """
+        """
+        if self.life > 50:
+            pg.draw.rect(self.image, (0, 255, 0), pg.Rect(0, 0, 20, self.rect.height))
+        elif self.life > 0:
+            pg.draw.rect(self.image, (255, 255, 0), pg.Rect(0, 0, 20, self.rect.height))
+        else:
+            self.kill()
+        """
+        #発動時間を1減算し、発動時間が0になったらシールドを消する
+        self.life -= 1
+        if self.life < 0:
+            self.kill()  # シールドを消す
+
+
 class Score:
     """
     打ち落とした爆弾，敵機の数をスコアとして表示するクラス
@@ -260,6 +301,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    shields = pg.sprite.Group()  # 防御シールドグループ
 
     tmr = 0
     clock = pg.time.Clock()
@@ -270,6 +312,10 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+        if event.type == pg.KEYDOWN and event.key == pg.K_CAPSLOCK:
+                if score.score >= 50 and len(shields) == 0:  # スコアが50以上かつシールドがないとき
+                    shields.add(Shield(bird, 400))  # CAPSLOCKキーが押されたら防御シールドを生成
+                    score.score_up(-50)  # スコアを50減らす
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -286,6 +332,11 @@ def main():
             bird.change_img(6, screen)  # こうかとん喜びエフェクト
 
         for bomb in pg.sprite.groupcollide(bombs, beams, True, True).keys():
+            exps.add(Explosion(bomb, 50))  # 爆発エフェクト
+            score.score_up(1)  # 1点アップ
+
+        for bomb in pg.sprite.groupcollide(bombs, shields, True, False).keys():
+            # 防御シールドと爆弾が衝突したときbombを削除する
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.score_up(1)  # 1点アップ
 
@@ -306,6 +357,8 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
+        shields.update()  # 防御シールドのアップデート
+        shields.draw(screen)  # 防御シールドを描画
         pg.display.update()
         tmr += 1
         clock.tick(50)
